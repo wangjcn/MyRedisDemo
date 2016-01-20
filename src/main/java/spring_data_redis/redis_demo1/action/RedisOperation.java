@@ -3,7 +3,6 @@ package spring_data_redis.redis_demo1.action;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -86,9 +85,9 @@ public class RedisOperation {
 
 			// Hash操作
 			stringRedisTemplate.delete("myHash");
-			stringRedisTemplate.opsForHash().put("myHash", "PEK", "����");
-			stringRedisTemplate.opsForHash().put("myHash", "SHA", "�Ϻ�����");
-			stringRedisTemplate.opsForHash().put("myHash", "PVG", "�ֶ�");
+			stringRedisTemplate.opsForHash().put("myHash", "PEK", "PEK");
+			stringRedisTemplate.opsForHash().put("myHash", "SHA", "SHA");
+			stringRedisTemplate.opsForHash().put("myHash", "PVG", "PVG");
 			Map<Object, Object> hashCache = stringRedisTemplate.opsForHash()
 					.entries("myHash");
 			for (Map.Entry<Object, Object> entry : hashCache.entrySet()) {
@@ -120,7 +119,6 @@ public class RedisOperation {
 		}
 
 	}
-
 	@Test
 	public void testSpringRedis2() {
 		ConfigurableApplicationContext ctx = null;
@@ -228,8 +226,8 @@ public class RedisOperation {
 					entityMapper.toHash(post));
 			stringRedisTemplate.boundListOps("test-list").leftPush(pid);
 		}
-		 String pid = String.valueOf(incrementAndGet("a"));
-//		 stringRedisTemplate.boundHashOps("test-user-"+uid).addFirst(pid);//
+		String pid = String.valueOf(incrementAndGet("a"));
+		// stringRedisTemplate.boundHashOps("test-user-"+uid).addFirst(pid);//
 	}
 
 	/**
@@ -241,7 +239,7 @@ public class RedisOperation {
 	@Test
 	public void findByList() {
 		// test-list中数据 数据结构为key=test-list value=pid (为*) ； test-map-*->uid
-		// test-map-*->uid map下的key为uid的值ֵ
+		// test-map-*->uid map下的key为uid的值
 		// SortQueryBuilder sq=SortQueryBuilder.sort("test-list");
 		// SortCriterion sc =sq.noSort();
 		// sc.get("");
@@ -267,7 +265,7 @@ public class RedisOperation {
 	}
 
 	/**
-	 * ===============��ȡ���еļ�===============
+	 * ===============查询所有的key===============
 	 */
 	@Test
 	public void testForQueryAllKey() {
@@ -278,12 +276,11 @@ public class RedisOperation {
 	}
 
 	/**
-	 * ===============�б����==================
+	 * ===============列表操作==================
 	 */
-	// ��ѯ
+	// 查询列表
 	@Test
 	public void testForQueryList() {
-		// ��ѯ�б�
 		List<String> list = stringRedisTemplate.opsForList().range("test-list",
 				0, -1);
 		List<String> list1 = stringRedisTemplate.boundListOps("test-list")
@@ -306,26 +303,24 @@ public class RedisOperation {
 
 	}
 
+	// 列表插入
 	@Test
 	public void testForAddList() {
-		// 1��
+		// 1
 		// stringRedisTemplate.opsForList().leftPush("test-list", "a");
-		// 2��
+		// 2
 		// stringRedisTemplate.opsForList().rightPush("test-list", "b");
-
 	}
 
+	//
 	@Test
 	public void testForAddHash() {
-
 		String dicSeq = "";
-		// // redisMap("test-map-" + pid).putAll(entityMapper.toHash((T) post));
-		// redisList("test-user-" + uid).addFirst(pid);// �����û�Id��������Ķ���
-		// redisList("test-list").addFirst(pid);// �������е����¶���
+		// redisMap("test-map-" + pid).putAll(entityMapper.toHash((T) post));
 		HashMapper<Dictionary, String, String> mapper = new DecoratingStringHashMapper<Dictionary>(
 				new JacksonHashMapper<Dictionary>(Dictionary.class));
-		stringRedisTemplate.opsForHash().putAll("",
-				new HashMap<String, String>());
+//		stringRedisTemplate.opsForHash().putAll("",
+//				new HashMap<String, String>());
 		List<Dictionary> dicList = jdbctemplate.query(
 				"select * from cp_t_at_code",
 				new BeanPropertyRowMapper<Dictionary>(Dictionary.class));
@@ -338,11 +333,11 @@ public class RedisOperation {
 			stringRedisTemplate.opsForHash().putAll(
 					"dictionary:" + dic.getCode_id() + ":" + dicSeq,
 					mapper.toHash(dic));
-
 			// redisList("test-list").addFirst(pid);//
 		}
 	}
 
+	//根据条件查询所有的hash数据
 	@Test
 	public void testForQueryHash() {
 		Set<String> set = stringRedisTemplate.keys("dictionary*");
@@ -355,4 +350,34 @@ public class RedisOperation {
 		}
 
 	}
+	//查询指定key的hash数据
+	@SuppressWarnings("unused")
+	@Test
+	public void testForQueryHash2() {
+		Set<String> set = stringRedisTemplate.keys("dictionary*");
+		Map map = stringRedisTemplate.opsForHash().entries("dictionary:card_change_type:71");
+		System.out.println(map);
+	}
+	//根据条件更新hash数据
+	@SuppressWarnings("rawtypes")
+	@Test
+	public void testForUpdateHash1(){
+		Set set = stringRedisTemplate.opsForHash().keys("dictionary:card_change_type:71");
+		for(Object obj : set){
+			System.out.println(obj);
+		}
+		stringRedisTemplate.opsForHash().delete("dictionary:card_change_type:71", stringRedisTemplate.opsForHash().keys("dictionary:card_change_type:71").toArray());
+		System.out.println();
+	}
+	//测试事物
+	@Test
+	public void testForTransaction(){
+		stringRedisTemplate.setEnableTransactionSupport(true);//奇怪的是一定要再显示开启redistemplate的事务支持  
+		stringRedisTemplate.multi();    
+		stringRedisTemplate.boundValueOps("somevkey").increment(1);    
+		stringRedisTemplate.boundZSetOps("somezkey").add("zvalue", 11);    
+		stringRedisTemplate.exec();   
+		System.out.println();
+	}
+	
 }
