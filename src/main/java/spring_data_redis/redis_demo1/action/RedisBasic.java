@@ -1,4 +1,4 @@
-package redis_demo1.action;
+package spring_data_redis.redis_demo1.action;
 
 import java.lang.reflect.ParameterizedType;
 import java.util.Iterator;
@@ -23,13 +23,12 @@ import org.springframework.data.redis.support.collections.RedisList;
 import org.springframework.data.redis.support.collections.RedisMap;
 import org.springframework.data.redis.support.collections.RedisSet;
 
-import redis_demo1.model.Post;
+import spring_data_redis.redis_demo1.model.Post;
 
 public class RedisBasic<T> {
-
-//	@Resource
+	// @Resource
 	private StringRedisTemplate template;
-	// string ²Ù×÷
+	// string æ“ä½œ
 	private ValueOperations<String, String> valueOps;
 
 	private Class<T> entityClass;
@@ -43,14 +42,14 @@ public class RedisBasic<T> {
 	}
 
 	/**
-	 * ²éÑ¯Êı¾İ¸ù¾İÓÃ»§±àºÅ
+	 * æŸ¥è¯¢æ•°æ®æ ¹æ®ç”¨æˆ·ç¼–å·
 	 * 
 	 * @param key
 	 * @return
 	 */
 	public List<T> findByUid(String key) {
-		// test-user-1ÖĞÊı¾İ Êı¾İ½á¹¹Îªkey=test-user-1 value=pid (Îª*) £»#´ú±íÊÇ²éÑ¯
-		// test-user-1 µÄvalue test-map-*->uid´ú±í test-map-*mapÏÂµÄkeyÎªuidµÄÖµ
+		// test-user-1ä¸­æ•°æ® æ•°æ®ç»“æ„ä¸ºkey=test-user-1 value=pid (ä¸º*) ï¼›#ä»£è¡¨æ˜¯æŸ¥è¯¢
+		// test-user-1 çš„value test-map-*->uidä»£è¡¨ test-map-*mapä¸‹çš„keyä¸ºuidçš„å€¼
 		SortQuery<String> query = SortQueryBuilder.sort("test-user-1").noSort()
 				.get("#").get("test-map-*->uid").get("test-map-*->content")
 				.build();
@@ -61,7 +60,7 @@ public class RedisBasic<T> {
 				String pid = iterator.next();
 				map.put("uid", iterator.next());
 				map.put("content", iterator.next());
-				return entityMapper.fromHash(map);// ×ªĞÍ ½«map×ª»»³ÉÊµÌå
+				return entityMapper.fromHash(map);// è½¬å‹ å°†mapè½¬æ¢æˆå®ä½“
 			}
 		};
 		System.out.println(redisMap("test-map-1").values()
@@ -72,14 +71,14 @@ public class RedisBasic<T> {
 	}
 
 	/**
-	 * ²éÑ¯ËùÓĞÓÃ»§Ìí¼ÓÊı¾İ
+	 * æŸ¥è¯¢æ‰€æœ‰ç”¨æˆ·æ·»åŠ æ•°æ®
 	 * 
 	 * @param key
 	 * @return
 	 */
 	public List<T> findByList() {
-		// test-listÖĞÊı¾İ Êı¾İ½á¹¹Îªkey=test-list value=pid (Îª*) £» test-map-*->uid
-		// test-map-*->uid mapÏÂµÄkeyÎªuidµÄÖµ
+		// test-listä¸­æ•°æ® æ•°æ®ç»“æ„ä¸ºkey=test-list value=pid (ä¸º*) ï¼› test-map-*->uid
+		// test-map-*->uid mapä¸‹çš„keyä¸ºuidçš„å€¼
 		SortQuery<String> query = SortQueryBuilder.sort("test-list").noSort()
 				.get("test-map-*->uid").get("test-map-*->content").build();
 		BulkMapper<T, String> hm = new BulkMapper<T, String>() {
@@ -89,18 +88,18 @@ public class RedisBasic<T> {
 				// String pid=iterator.next();
 				map.put("uid", iterator.next());
 				map.put("content", iterator.next());
-				return entityMapper.fromHash(map);// ×ªĞÍ ½«map×ª»»³ÉÊµÌå
+				return entityMapper.fromHash(map);// è½¬å‹ å°†mapè½¬æ¢æˆå®ä½“
 			}
 		};
 		System.out.println(redisMap("test-map-1").values()
-				+ "=====================");// keyÎªtest-map-1 µÄ Êı¾İ
+				+ "=====================");// keyä¸ºtest-map-1 çš„ æ•°æ®
 		System.out.println(template.sort(query));
 		System.out.println(template.sort(query, hm));
 		return template.sort(query, hm);
 	}
 
 	/**
-	 * Ìí¼ÓÊı¾İ
+	 * æ·»åŠ æ•°æ®
 	 * 
 	 * @param uid
 	 * @param post
@@ -108,15 +107,15 @@ public class RedisBasic<T> {
 	public void post(String uid, Post post) {
 		// String uid = findKey(username);
 		// post.setUid(uid);
-		// add post½«entity×ª»»³ÉHASH
+		// add postå°†entityè½¬æ¢æˆHASH
 		String pid = String.valueOf(incrementAndGet("test"));
 		redisMap("test-map-" + pid).putAll(entityMapper.toHash((T) post));
-		redisList("test-user-" + uid).addFirst(pid);// ²Ù×÷ÓÃ»§Id±£´æ²Ù×÷µÄ¶ÔÏó
-		redisList("test-list").addFirst(pid);// ±£´æËùÓĞµÄÎÄÕÂ¶ÔÏó
+		redisList("test-user-" + uid).addFirst(pid);// æ“ä½œç”¨æˆ·Idä¿å­˜æ“ä½œçš„å¯¹è±¡
+		redisList("test-list").addFirst(pid);// ä¿å­˜æ‰€æœ‰çš„æ–‡ç« å¯¹è±¡
 	}
 
 	/**
-	 * ²éÕÒString key
+	 * æŸ¥æ‰¾String key
 	 * 
 	 * @param key
 	 * @return
@@ -130,7 +129,7 @@ public class RedisBasic<T> {
 	}
 
 	/**
-	 * ÅĞ¶ÏkeyÊÇ·ñ´æÔÚ
+	 * åˆ¤æ–­keyæ˜¯å¦å­˜åœ¨
 	 * 
 	 * @param key
 	 * @return
@@ -140,7 +139,7 @@ public class RedisBasic<T> {
 	}
 
 	/**
-	 * »ñÈ¡×ÔÔöË÷Òı
+	 * è·å–è‡ªå¢ç´¢å¼•
 	 * 
 	 * @param key
 	 * @return
@@ -156,7 +155,7 @@ public class RedisBasic<T> {
 	}
 
 	/**
-	 * »ñÈ¡String²Ù×÷Ïî
+	 * è·å–Stringæ“ä½œé¡¹
 	 * 
 	 * @return
 	 */
@@ -168,7 +167,7 @@ public class RedisBasic<T> {
 	}
 
 	/**
-	 * »ñÈ¡Set²Ù×÷Ïî
+	 * è·å–Setæ“ä½œé¡¹
 	 * 
 	 * @return
 	 */
@@ -177,7 +176,7 @@ public class RedisBasic<T> {
 	}
 
 	/**
-	 * »ñÈ¡MAP²Ù×÷Ïî
+	 * è·å–MAPæ“ä½œé¡¹
 	 * 
 	 * @return
 	 */
@@ -186,7 +185,7 @@ public class RedisBasic<T> {
 	}
 
 	/**
-	 * »ñÈ¡List²Ù×÷Ïî
+	 * è·å–Listæ“ä½œé¡¹
 	 * 
 	 * @return
 	 */
