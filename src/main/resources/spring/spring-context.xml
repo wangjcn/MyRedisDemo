@@ -5,7 +5,7 @@
 http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
 	<!-- 自动扫描(自动注入) -->
-	<context:component-scan base-package="demo1" />
+	<context:component-scan base-package="redis_demo1.*" />
 	<!-- <bean id="redisSentinelConfiguration"
         class="org.springframework.data.redis.connection.RedisSentinelConfiguration">
         <property name="master">
