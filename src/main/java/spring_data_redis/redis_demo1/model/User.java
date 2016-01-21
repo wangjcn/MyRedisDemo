@@ -28,6 +28,11 @@ public class User {
 		this.name = name;
 		this.age = age;
 	}
+	
+	public User() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
 	@Override
 	public String toString() {
 		return "User [id=" + id + ", name=" + name + ", age=" + age + "]";
