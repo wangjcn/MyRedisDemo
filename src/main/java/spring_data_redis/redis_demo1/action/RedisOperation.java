@@ -3,6 +3,7 @@ package spring_data_redis.redis_demo1.action;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,7 +16,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.BulkMapper;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.RedisOperations;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.query.SortQuery;
 import org.springframework.data.redis.core.query.SortQueryBuilder;
@@ -30,6 +36,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import spring_data_redis.redis_demo1.model.Dictionary;
 import spring_data_redis.redis_demo1.model.Post;
+import spring_data_redis.redis_demo1.model.User;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = "classpath:spring/*.xml")
@@ -119,6 +126,7 @@ public class RedisOperation {
 		}
 
 	}
+
 	@Test
 	public void testSpringRedis2() {
 		ConfigurableApplicationContext ctx = null;
@@ -319,8 +327,8 @@ public class RedisOperation {
 		// redisMap("test-map-" + pid).putAll(entityMapper.toHash((T) post));
 		HashMapper<Dictionary, String, String> mapper = new DecoratingStringHashMapper<Dictionary>(
 				new JacksonHashMapper<Dictionary>(Dictionary.class));
-//		stringRedisTemplate.opsForHash().putAll("",
-//				new HashMap<String, String>());
+		// stringRedisTemplate.opsForHash().putAll("",
+		// new HashMap<String, String>());
 		List<Dictionary> dicList = jdbctemplate.query(
 				"select * from cp_t_at_code",
 				new BeanPropertyRowMapper<Dictionary>(Dictionary.class));
@@ -337,7 +345,7 @@ public class RedisOperation {
 		}
 	}
 
-	//根据条件查询所有的hash数据
+	// 根据条件查询所有的hash数据
 	@Test
 	public void testForQueryHash() {
 		Set<String> set = stringRedisTemplate.keys("dictionary*");
@@ -350,34 +358,100 @@ public class RedisOperation {
 		}
 
 	}
-	//查询指定key的hash数据
+
+	// 查询指定key的hash数据
 	@SuppressWarnings("unused")
 	@Test
 	public void testForQueryHash2() {
 		Set<String> set = stringRedisTemplate.keys("dictionary*");
-		Map map = stringRedisTemplate.opsForHash().entries("dictionary:card_change_type:71");
+		Map map = stringRedisTemplate.opsForHash().entries(
+				"dictionary:card_change_type:71");
 		System.out.println(map);
 	}
-	//根据条件更新hash数据
+
+	// 根据条件更新hash数据
 	@SuppressWarnings("rawtypes")
 	@Test
-	public void testForUpdateHash1(){
-		Set set = stringRedisTemplate.opsForHash().keys("dictionary:card_change_type:71");
-		for(Object obj : set){
+	public void testForUpdateHash1() {
+		Set set = stringRedisTemplate.opsForHash().keys(
+				"dictionary:card_change_type:71");
+		for (Object obj : set) {
 			System.out.println(obj);
 		}
-		stringRedisTemplate.opsForHash().delete("dictionary:card_change_type:71", stringRedisTemplate.opsForHash().keys("dictionary:card_change_type:71").toArray());
+		stringRedisTemplate.opsForHash().delete(
+				"dictionary:card_change_type:71",
+				stringRedisTemplate.opsForHash()
+						.keys("dictionary:card_change_type:71").toArray());
 		System.out.println();
 	}
-	//测试事物
+
+	// 测试事物
 	@Test
-	public void testForTransaction(){
-		stringRedisTemplate.setEnableTransactionSupport(true);//奇怪的是一定要再显示开启redistemplate的事务支持  
-		stringRedisTemplate.multi();    
-		stringRedisTemplate.boundValueOps("somevkey").increment(1);    
-		stringRedisTemplate.boundZSetOps("somezkey").add("zvalue", 11);    
-		stringRedisTemplate.exec();   
+	public void testForTransaction() {
+		stringRedisTemplate.setEnableTransactionSupport(true);// 奇怪的是一定要再显示开启redistemplate的事务支持
+		stringRedisTemplate.multi();
+		stringRedisTemplate.boundValueOps("somevkey").increment(1);
+		stringRedisTemplate.boundZSetOps("somezkey").add("zvalue", 11);
+		stringRedisTemplate.exec();
 		System.out.println();
+	}
+
+	@Test
+	public void testMultiDiscard1() throws Exception {
+		stringRedisTemplate.execute(new RedisCallback<Object>() {
+			public Object doInRedis(RedisConnection connection)
+					throws DataAccessException {
+//				connection.openPipeline();
+				connection.multi();
+				connection.set("a".getBytes(), "b".getBytes());
+				connection.set("a".getBytes(), "bbb".getBytes());
+				connection.append("a".getBytes(), "ccc".getBytes());
+				connection.hSet("a1".getBytes(), "field1".getBytes(),
+						"1000".getBytes());
+				connection.hIncrBy("a1".getBytes(), "field1".getBytes(), 10);
+				Map<byte[], byte[]> args = new HashMap<byte[], byte[]>(3);
+				args.put("field2".getBytes(), "valueX".getBytes());
+				args.put("field3".getBytes(), "valueY".getBytes());
+				args.put("field4".getBytes(), "000".getBytes());
+				connection.hMSet("a2".getBytes(), args);
+				connection.append("a3".getBytes(), "bunny".getBytes());
+				connection.discard();
+				connection.exec();
+				return null;
+			}
+		}, true);
 	}
 	
+	  /**
+	   * 在连接池环境中，需要借助sessionCallback来绑定connection
+	   */
+		@SuppressWarnings("unused")
+		@Test
+	  public void txUsedPoolSample(){
+//	    final String dicSeq;
+		final List<Dictionary> dicList = jdbctemplate.query(
+				"select * from cp_t_at_code",
+				new BeanPropertyRowMapper<Dictionary>(Dictionary.class));
+		String dicSeq  = String.valueOf(incrementAndGet("dicSeq"));
+		final HashMapper<Dictionary, String, String> mapper = new DecoratingStringHashMapper<Dictionary>(
+				new JacksonHashMapper<Dictionary>(Dictionary.class));
+	    SessionCallback<User> sessionCallback = new SessionCallback<User>() {
+	      public User execute(RedisOperations operations) throws DataAccessException {
+	        operations.multi();
+	        int i = 1;
+	        for(Dictionary dic : dicList){
+	        	Map<byte[], byte[]> map = new HashMap<byte[], byte[]>();
+	        	map.put("code_id".getBytes(), dic.getCode_id().getBytes());
+	        	map.put("code_name".getBytes(), dic.getCode_name().getBytes());
+	        	operations.opsForHash().putAll("dictionary:"+dic.getCode_id()+":"+(i++), mapper.toHash(dic));
+	        	operations.opsForHash();
+	        }
+//	        oper.expire(60, TimeUnit.MINUTES);//设置过期时间
+	        operations.exec();
+	        return null;
+	      }
+	    };
+	    stringRedisTemplate.execute(sessionCallback);
+	  }
+
 }
