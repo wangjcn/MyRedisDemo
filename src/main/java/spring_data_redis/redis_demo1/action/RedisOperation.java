@@ -436,7 +436,8 @@ public class RedisOperation {
 		final HashMapper<Dictionary, String, String> mapper = new DecoratingStringHashMapper<Dictionary>(
 				new JacksonHashMapper<Dictionary>(Dictionary.class));
 	    SessionCallback<User> sessionCallback = new SessionCallback<User>() {
-	      public User execute(RedisOperations operations) throws DataAccessException {
+	      @SuppressWarnings("unchecked")
+		public User execute(RedisOperations operations) throws DataAccessException {
 	        operations.multi();
 	        int i = 1;
 	        for(Dictionary dic : dicList){
@@ -454,4 +455,11 @@ public class RedisOperation {
 	    stringRedisTemplate.execute(sessionCallback);
 	  }
 
+		
+
+		@Test
+		public void testMultiDiscard2() throws Exception {
+			stringRedisTemplate.setEnableTransactionSupport(true);
+//			stringRedisTemplate.execute(action, true, false);
+		}
 }
